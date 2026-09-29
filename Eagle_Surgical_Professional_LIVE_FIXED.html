@@ -246,9 +246,12 @@ nav,header,section,footer{width:100%;max-width:none}
   </div>
 </div>
 <script id="eagle-loader-script">
-window.addEventListener("load",function(){
-  setTimeout(function(){var x=document.getElementById("eagleLoader");if(x)x.classList.add("hide");},450);
-});
+(function(){
+  function hideLoader(){var x=document.getElementById("eagleLoader");if(x)x.classList.add("hide");}
+  if(document.readyState === "complete") setTimeout(hideLoader,450);
+  else window.addEventListener("load",function(){setTimeout(hideLoader,450);},{once:true});
+  setTimeout(hideLoader,5000);
+})();
 </script>
 
 <nav>
@@ -257,7 +260,7 @@ window.addEventListener("load",function(){
 <div class="links">
 <a href="#about">About</a><a href="#products">Products</a><a href="#services">Services</a><a href="#contact">Contact</a>
 </div>
-<a class="btn" href="tel:+923286288808">Contact Us</a>
+<a class="btn" href="tel:+923285956700">Contact Us</a>
 </div>
 </nav>
 <header class="hero" id="home">
@@ -268,7 +271,7 @@ window.addEventListener("load",function(){
 <h2>Precision. Quality. Trust.</h2>
 <p>Supplying a wide range of surgical instruments with a focus on dependable quality, professional service, and customer-specific requirements.</p>
 <div class="actions">
-<a class="btn" href="https://wa.me/923286288808" target="_blank" rel="noopener">WhatsApp / Request Quote</a>
+<a class="btn" href="https://wa.me/923285956700" target="_blank" rel="noopener">WhatsApp / Request Quote</a>
 </div>
 </div>
 </header>
@@ -319,33 +322,33 @@ window.addEventListener("load",function(){
 <div class="container">
 <div class="section-title">
 <div class="eyebrow">Get In Touch</div>
-<h2>Let's Discuss Your Requirement</h2><p><strong>03286288808</strong> · <a href="mailto:eaglesurgical112@gmail.com">eaglesurgical112@gmail.com</a></p></h2>
+<h2>Let's Discuss Your Requirement</h2><p><strong>0328 5956700</strong> · <a href="mailto:eaglesurgical112@gmail.com">eaglesurgical112@gmail.com</a></p></h2>
 <p>For product inquiries, quotations and supply requirements, contact Eagle Surgical directly.</p>
 </div>
 <div class="contact-box">
 <div class="contact-panel">
 <div class="contact-item"><div class="label">Location</div><div class="value">Sialkot, Pakistan</div></div>
-<div class="contact-item"><div class="label">WhatsApp</div><div class="value"><a href="https://wa.me/923286288808" target="_blank" rel="noopener">+92 328 5956700</a></div></div>
-<div class="contact-item"><div class="label">Phone</div><div class="value"><a href="tel:+923286288808">+92 328 5956700</a></div></div>
+<div class="contact-item"><div class="label">WhatsApp</div><div class="value"><a href="https://wa.me/923285956700" target="_blank" rel="noopener">+92 328 5956700</a></div></div>
+<div class="contact-item"><div class="label">Phone</div><div class="value"><a href="tel:+923285956700">+92 328 5956700</a></div></div>
 
 <div class="contact-options">
-<a class="contact-option" href="https://wa.me/923286288808" target="_blank" rel="noopener">
+<a class="contact-option" href="https://wa.me/923285956700" target="_blank" rel="noopener">
 <span class="contact-icon">WA</span><span><small>WhatsApp</small><strong>Chat for Business</strong></span>
 </a>
-<a class="contact-option" href="tel:+923286288808">
+<a class="contact-option" href="tel:+923285956700">
 <span class="contact-icon">☎</span><span><small>Phone</small><strong>Call Eagle Surgical</strong></span>
 </a>
 </div>
 
-<div class="quote-note">Email and Instagram buttons can be activated as soon as you provide the exact business email and Instagram profile link.</div>
+<div class="social-row"><a class="social-btn" href="mailto:eaglesurgical112@gmail.com">✉ Gmail</a><a class="social-btn" href="https://www.instagram.com/eagle_surgical_instruments/" target="_blank" rel="noopener">◎ Instagram @eagle_surgical_instruments</a></div>
 </div>
 
 <div class="contact-panel">
 <h3 style="font-size:24px;margin-bottom:10px">Request a Quote</h3>
 <p style="color:#d7e6ec;margin-bottom:20px">Send the instrument name, reference photo, quantity and specifications. We will respond with the available details and quotation.</p>
 <div class="actions" style="justify-content:flex-start">
-<a class="btn" href="https://wa.me/923286288808" target="_blank" rel="noopener">WhatsApp / Request Quote</a>
-<a class="btn secondary" href="tel:+923286288808">Call 03286288808</a>
+<a class="btn" href="https://wa.me/923285956700" target="_blank" rel="noopener">WhatsApp / Request Quote</a>
+<a class="btn secondary" href="tel:+923285956700">Call 0328 5956700</a>
 </div>
 <div class="social-row">
 <a class="social-btn" href="#enquiry">Enquiry Form</a>
@@ -371,7 +374,7 @@ window.addEventListener("load",function(){
     <textarea id="qDetails" rows="5" placeholder="Quantity, specifications, reference photo details or other requirements" style="padding:14px;border-radius:10px;border:1px solid #cfdde5;"></textarea>
     <button type="submit" style="padding:14px;border:0;border-radius:10px;cursor:pointer;background:#0b7fab;color:#fff;font-weight:800;">Send Enquiry on WhatsApp</button>
     <a href="mailto:eaglesurgical112@gmail.com?subject=Eagle%20Surgical%20Business%20Enquiry" style="text-align:center;padding:14px;border-radius:10px;background:#eaf3f7;color:#0b5e7d;font-weight:800;text-decoration:none;">Send Enquiry by Email</a>
-    <a href="https://www.instagram.com/eagle_surgical_instruments?stkn=MW1vd3NxaDBjaDhlNA==" target="_blank" rel="noopener" style="text-align:center;padding:14px;border-radius:10px;background:#eaf3f7;color:#0b5e7d;font-weight:800;text-decoration:none;">Visit Instagram</a>
+    <a href="https://www.instagram.com/eagle_surgical_instruments/" target="_blank" rel="noopener" style="text-align:center;padding:14px;border-radius:10px;background:#eaf3f7;color:#0b5e7d;font-weight:800;text-decoration:none;">Visit Instagram</a>
   </form>
 </section>
 
@@ -473,9 +476,9 @@ window.addEventListener("load",function(){
 
 <script id="eagle-contact-config">
 (function(){
-  // Add the exact business email and Instagram profile URL here when ready.
+  // Public business contact configuration.
   const EMAIL = "eaglesurgical112@gmail.com";
-  const INSTAGRAM = "https://www.instagram.com/eagle_surgical_instruments?stkn=MW1vd3NxaDBjaDhlNA==";
+  const INSTAGRAM = "https://www.instagram.com/eagle_surgical_instruments/";
   document.querySelectorAll("[data-eagle-email]").forEach(el=>{
     if(EMAIL){ el.href="mailto:"+EMAIL; el.style.display=""; }
     else el.style.display="none";
