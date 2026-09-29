@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Eagle Surgical — Private Admin</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:#f4f8fa;color:#0a1722}
+.wrap{max-width:980px;margin:auto;padding:20px}.panel{background:#fff;border:1px solid #dce6ec;border-radius:18px;padding:22px;margin-bottom:18px;box-shadow:0 10px 35px rgba(8,34,50,.07)}
+h1,h2,h3{margin-top:0}.muted{color:#667685}.hidden{display:none!important}
+input,textarea{width:100%;padding:13px;border:1px solid #ccd9e1;border-radius:10px;margin-top:7px;font:inherit}
+label{display:block;margin:14px 0;font-weight:700}.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1}
+.btn{border:0;border-radius:10px;padding:13px 18px;background:#0b7fab;color:#fff;font-weight:800;cursor:pointer}
+.btn:disabled{opacity:.55;cursor:not-allowed}.secondary{background:#eaf3f7;color:#0b5e7d}.danger{background:#c83b3b}
+.status{padding:11px 13px;border-radius:10px;background:#eef6f9;margin-top:12px;white-space:pre-wrap}
+.products{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.product{border:1px solid #dce6ec;border-radius:14px;overflow:hidden;background:#fff}.product img{width:100%;height:180px;object-fit:contain;background:#f4f8fa}
+.product .body{padding:14px}.product h3{margin:0 0 5px}.product p{color:#667685;font-size:13px;min-height:36px}
+.preview{max-width:240px;max-height:180px;object-fit:contain;border:1px solid #dce6ec;border-radius:10px;margin-top:8px}
+.badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#e8f7ef;color:#167447;font-size:12px;font-weight:800}
+@media(max-width:600px){.wrap{padding:12px}.panel{padding:17px}.row{display:block}.row>*{margin-bottom:8px}}
+.image-editor{margin-top:12px;padding:12px;border:1px solid #dce6ec;border-radius:14px;background:#f8fbfc}.editor-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}.image-editor canvas{display:block;width:100%;max-width:720px;aspect-ratio:3/2;border-radius:12px;background:#111;cursor:grab;touch-action:none}.image-editor canvas:active{cursor:grabbing}.editor-controls{align-items:end;margin-top:10px}.editor-controls input{margin-top:6px}.editor-controls label{font-weight:700}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="panel">
+    <h1>Eagle Surgical Admin</h1>
+    <div class="muted">Private catalogue management — only authenticated users can publish or delete products.</div>
+  </div>
+
+  <section id="loginPanel" class="panel">
+    <h2>Admin Login</h2>
+    <p class="muted">Use the authorized Supabase admin email and password.</p>
+    <label>Email<input id="email" type="email" autocomplete="username"></label>
+    <label>Password<input id="password" type="password" autocomplete="current-password"></label>
+    <button class="btn" id="loginBtn" type="button">Sign in</button>
+    <div id="loginStatus" class="status hidden"></div>
+  </section>
+
+  <section id="adminPanel" class="hidden">
+    <div class="panel">
+      <div class="row" style="align-items:center">
+        <div><h2 style="margin-bottom:4px">Add Product</h2><div id="userText" class="muted"></div></div>
+        <button class="btn secondary" id="logoutBtn">Sign out</button>
+      </div>
+      <label>Product image
+        <input id="image" type="file" accept=".jpg,.jpeg,.png,.webp" hidden>
+        <button class="btn secondary" id="chooseImageBtn" type="button">Choose Product Image</button>
+        <div id="fileInfo" class="muted" style="margin-top:8px">No new image selected.</div>
+      </label>
+      <div id="editor" class="image-editor hidden">
+        <div class="editor-head"><b>Adjust product photo</b><span class="muted">Drag to move • use zoom to fit it your way</span></div>
+        <canvas id="editorCanvas" width="720" height="480"></canvas>
+        <div class="row editor-controls">
+          <label style="flex:2;margin:0">Zoom <input id="zoom" type="range" min="1" max="3" step="0.01" value="1"></label>
+          <button class="btn secondary" id="resetCropBtn" type="button">Reset position</button>
+        </div>
+        <button class="btn secondary" id="applyCropBtn" type="button">Apply photo adjustment</button>
+      </div>
+      <img id="preview" class="preview hidden" alt="Image preview" decoding="async">
+      <label>Product name
+        <input id="name" placeholder="e.g. Mayo Scissors">
+      </label>
+      <label>Category
+        <input id="category" placeholder="e.g. Scissors">
+      </label>
+      <label>Description
+        <textarea id="description" rows="4" placeholder="Short product description"></textarea>
+      </label>
+      <div id="editHint" class="status hidden"></div>
+      <div class="row">
+        <button class="btn" id="postBtn">Upload & Publish Product</button>
+        <button class="btn secondary hidden" id="cancelEditBtn" type="button">Cancel Edit</button>
+      </div>
+      <div id="postStatus" class="status hidden"></div>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="align-items:center">
+        <div><h2 style="margin-bottom:4px">Published Products</h2><span id="countBadge" class="badge">0 products</span></div>
+        <button class="btn secondary" id="refreshBtn">Refresh</button>
+      </div>
+      <div id="products" class="products" style="margin-top:15px"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+const SUPABASE_URL="https://mwicrlglbzzlnhkphifu.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_2x_jWkZbADwN1hwiP5-6bQ_rEidoWu6";
+const BUCKET="product-images";
+if(!window.supabase){
+  const ls=document.getElementById("loginStatus");
+  if(ls){ls.classList.remove("hidden");ls.textContent="Supabase library could not load. Check internet connection and reopen this file.";}
+  throw new Error("Supabase library not loaded");
+}
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+let editingId=null;
+let editingImageUrl="";
+
+function status(el,msg,error=false){
+  el.classList.remove("hidden"); el.textContent=msg;
+  el.style.background=error?"#fff0f0":"#eef6f9";
+}
+function clearStatus(el){el.classList.add("hidden");el.textContent=""}
+
+async function optimizeImage(file){
+  if(!file || !file.type.startsWith("image/")) throw new Error("Please select a JPG, PNG or WebP image.");
+  if(file.size > 30 * 1024 * 1024) throw new Error("Image is too large. Please choose an image under 30 MB.");
+  const img=await loadImage(file);
+  const srcW=img.naturalWidth||img.width, srcH=img.naturalHeight||img.height;
+  const outMax=2400;
+  const scale=Math.min(1,outMax/srcW,outMax/srcH);
+  const outW=Math.max(1,Math.round(srcW*scale)),outH=Math.max(1,Math.round(srcH*scale));
+  const canvas=document.createElement("canvas");canvas.width=outW;canvas.height=outH;
+  const ctx=canvas.getContext("2d",{alpha:false});ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
+  ctx.drawImage(img,0,0,outW,outH);
+  const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/webp",0.92));
+  if(!blob) throw new Error("Image processing failed.");
+  const base=(file.name||"product").replace(/\.[^.]+$/," ").trim().toLowerCase().replace(/[^a-z0-9_-]/g,"-").replace(/-+/g,"-").slice(0,60)||"product";
+  return new File([blob],base+"-"+Date.now()+".webp",{type:"image/webp"});
+}
+function loadImage(file){return new Promise((resolve,reject)=>{const u=URL.createObjectURL(file),img=new Image();img.onload=()=>{URL.revokeObjectURL(u);resolve(img)};img.onerror=()=>{URL.revokeObjectURL(u);reject(new Error("Could not read this image."))};img.src=u;});}
+function imagePathFromUrl(url){
+  if(!url)return "";
+  const marker="/storage/v1/object/public/"+BUCKET+"/";
+  const i=url.indexOf(marker);
+  return i>=0?decodeURIComponent(url.slice(i+marker.length)):"";
+}
+
+
+async function loadProducts(){
+  const box=$("products");box.innerHTML="<div class='muted'>Loading products...</div>";
+  let result=await sb.from("Products").select("id,name,category,description,Img_url,Created_at").order("Created_at",{ascending:false});
+  if(result.error) result=await sb.from("Products").select("id,name,category,description,Img_url");
+  const {data,error}=result;
+  if(error){box.innerHTML="<div class='muted'>Could not load products: "+esc(error.message)+"</div>";return;}
+  $("countBadge").textContent=(data?.length||0)+" product"+((data?.length||0)===1?"":"s");
+  if(!data?.length){box.innerHTML="<div class='muted'>No products published yet.</div>";return;}
+  box.innerHTML=data.map(p=>`
+    <article class="product">
+      ${p.Img_url?`<img src="${esc(p.Img_url)}" alt="${esc(p.name)}" loading="lazy">`:""}
+      <div class="body">
+        <h3>${esc(p.name)}</h3>
+        <div class="muted">${esc(p.category||"")}</div>
+        <p>${esc(p.description||"")}</p>
+        <div class="row">
+           <button class="btn secondary" data-edit-id="${esc(p.id)}" data-name="${esc(p.name)}" data-category="${esc(p.category||"")}" data-description="${esc(p.description||"")}" data-img="${esc(p.Img_url||"")}">Edit</button>
+           <button class="btn danger" data-delete-id="${esc(p.id)}" data-img="${esc(p.Img_url||"")}">Delete</button>
+         </div>
+      </div>
+    </article>`).join("");
+}
+
+async function requireSession(){
+  const {data,error}=await sb.auth.getSession();
+  if(error||!data.session) throw new Error("Admin login required.");
+  return data.session;
+}
+
+async function enterAdmin(session){
+  $("loginPanel").classList.add("hidden");
+  $("adminPanel").classList.remove("hidden");
+  $("userText").textContent=session.user.email||"Signed in";
+  await loadProducts();
+}
+
+let previewUrl="";
+let editorImg=null,editorObjectUrl="",crop={x:0,y:0,zoom:1},dragging=false,lastPointer={x:0,y:0};
+const editorCanvas=$("editorCanvas"),editorCtx=editorCanvas.getContext("2d");
+function drawEditor(){
+  if(!editorImg)return;
+  const cw=editorCanvas.width,ch=editorCanvas.height;
+  editorCtx.clearRect(0,0,cw,ch);editorCtx.fillStyle="#111";editorCtx.fillRect(0,0,cw,ch);
+  const scale=Math.max(cw/editorImg.naturalWidth,ch/editorImg.naturalHeight)*crop.zoom;
+  const w=editorImg.naturalWidth*scale,h=editorImg.naturalHeight*scale;
+  const x=(cw-w)/2+crop.x,y=(ch-h)/2+crop.y;
+  editorCtx.drawImage(editorImg,x,y,w,h);
+  editorCtx.strokeStyle="rgba(255,255,255,.9)";editorCtx.lineWidth=2;editorCtx.strokeRect(1,1,cw-2,ch-2);
+}
+function resetCrop(){crop={x:0,y:0,zoom:1};$("zoom").value="1";drawEditor();}
+function closeEditor(){if(editorObjectUrl){URL.revokeObjectURL(editorObjectUrl);editorObjectUrl="";}editorImg=null;$("editor").classList.add("hidden");}
+$("chooseImageBtn").onclick=()=>$("image").click();
+$("image").addEventListener("change",()=>{
+  const file=$("image").files[0],preview=$("preview"),info=$("fileInfo");
+  if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl="";}
+  closeEditor();
+  if(!file){preview.classList.add("hidden");info.textContent="No new image selected.";return;}
+  if(!file.type.startsWith("image/")){info.textContent="Please choose JPG, PNG or WebP.";$("image").value="";return;}
+  if(file.size>30*1024*1024){info.textContent="Image is larger than 30 MB. Choose a smaller photo.";$("image").value="";return;}
+  info.textContent=file.name+" • "+(file.size/1024/1024).toFixed(2)+" MB • ready to adjust";
+  previewUrl=URL.createObjectURL(file);preview.src=previewUrl;preview.classList.remove("hidden");
+  editorObjectUrl=previewUrl;editorImg=new Image();editorImg.onload=()=>{resetCrop();$("editor").classList.remove("hidden");};editorImg.src=editorObjectUrl;
+});
+$("zoom").addEventListener("input",()=>{crop.zoom=Number($("zoom").value);drawEditor();});
+$("resetCropBtn").onclick=resetCrop;
+editorCanvas.addEventListener("pointerdown",e=>{if(!editorImg)return;dragging=true;editorCanvas.setPointerCapture(e.pointerId);lastPointer={x:e.clientX,y:e.clientY};});
+editorCanvas.addEventListener("pointermove",e=>{if(!dragging)return;crop.x+=e.clientX-lastPointer.x;crop.y+=e.clientY-lastPointer.y;lastPointer={x:e.clientX,y:e.clientY};drawEditor();});
+editorCanvas.addEventListener("pointerup",()=>dragging=false);editorCanvas.addEventListener("pointercancel",()=>dragging=false);
+$("applyCropBtn").onclick=()=>{
+  if(!editorImg)return;
+  const out=document.createElement("canvas");out.width=2400;out.height=1600;
+  const ctx=out.getContext("2d",{alpha:false});ctx.fillStyle="#fff";ctx.fillRect(0,0,out.width,out.height);ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
+  const scale=Math.max(out.width/editorImg.naturalWidth,out.height/editorImg.naturalHeight)*crop.zoom;
+  const w=editorImg.naturalWidth*scale,h=editorImg.naturalHeight*scale;
+  const x=(out.width-w)/2+crop.x*(out.width/editorCanvas.width),y=(out.height-h)/2+crop.y*(out.height/editorCanvas.height);
+  ctx.drawImage(editorImg,x,y,w,h);
+  out.toBlob(blob=>{
+    if(!blob)return;
+    const old=$("image").files[0],name=((old?.name||"product").replace(/\.[^.]+$/,""))||"product";
+    const file=new File([blob],name+"-edited.webp",{type:"image/webp"});
+    const dt=new DataTransfer();dt.items.add(file);$("image").files=dt.files;
+    if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl=URL.createObjectURL(file);$("preview").src=previewUrl;
+    $("fileInfo").textContent=file.name+" • "+(file.size/1024/1024).toFixed(2)+" MB • HD edited image ready";
+    closeEditor();
+    status($("postStatus"),"Photo adjusted. Publish/Save Product to upload it in HD.");
+  },"image/webp",0.94);
+};
+
+$("loginBtn").onclick=async()=>{
+  clearStatus($("loginStatus"));
+  try{
+    const email=$("email").value.trim(),password=$("password").value;
+    if(!email||!password)throw new Error("Enter email and password.");
+    const {data,error}=await sb.auth.signInWithPassword({email,password});
+    if(error)throw error;
+    await enterAdmin(data.session);
+  }catch(e){status($("loginStatus"),"Login failed: "+e.message,true);}
+};
+
+["email","password"].forEach(id=>$(id).addEventListener("keydown",e=>{if(e.key==="Enter") $("loginBtn").click()}));
+
+$("logoutBtn").onclick=async()=>{await sb.auth.signOut();location.reload()};
+$("refreshBtn").onclick=loadProducts;
+
+$("postBtn").onclick=async()=>{
+  const btn=$("postBtn"),st=$("postStatus");
+  try{
+    btn.disabled=true;status(st,editingId?"Saving changes...":"Uploading image...");
+    await requireSession();
+    const name=$("name").value.trim(),category=$("category").value.trim(),description=$("description").value.trim();
+    if(!name)throw new Error("Product name is required.");
+    if(!category)throw new Error("Category is required.");
+
+    let imageUrl=editingImageUrl;
+    const raw=$("image").files[0];
+    if(raw){
+      const file=await optimizeImage(raw);
+      const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,"-");
+      const path="products/"+Date.now()+"-"+safe;
+      const {error:upErr}=await sb.storage.from(BUCKET).upload(path,file,{contentType:file.type,upsert:false});
+      if(upErr)throw new Error("Image upload failed: "+upErr.message);
+      const {data:urlData}=sb.storage.from(BUCKET).getPublicUrl(path);
+      if(!urlData?.publicUrl){await sb.storage.from(BUCKET).remove([path]);throw new Error("Could not create public image URL.");}
+      imageUrl=urlData.publicUrl;
+    }
+
+    if(editingId){
+      const {error}=await sb.from("Products").update({name,category,description,Img_url:imageUrl}).eq("id",editingId);
+      if(error)throw new Error("Product update failed: "+error.message);
+      status(st,"Product updated successfully. The public catalogue will update automatically.");
+    }else{
+      if(!imageUrl)throw new Error("Select a product image first.");
+      const {error:dbErr}=await sb.from("Products").insert({name,category,description,Img_url:imageUrl});
+      if(dbErr)throw new Error("Product database save failed: "+dbErr.message);
+      status(st,"Product published successfully. It will appear on the public catalogue.");
+    }
+    resetEditor();
+    await loadProducts();
+  }catch(e){status(st,"Could not save product: "+e.message,true)}
+  finally{btn.disabled=false}
+};
+
+$("products").addEventListener("click",async e=>{
+  const edit=e.target.closest("[data-edit-id]");
+  if(edit){
+    editingId=edit.dataset.editId;
+    editingImageUrl=edit.dataset.img||"";
+    $("name").value=edit.dataset.name||"";
+    $("category").value=edit.dataset.category||"";
+    $("description").value=edit.dataset.description||"";
+    $("image").value="";
+    $("preview").src=editingImageUrl;
+    $("preview").classList.toggle("hidden",!editingImageUrl);
+    $("postBtn").textContent="Save Product Changes";
+    $("cancelEditBtn").classList.remove("hidden");
+    status($("editHint"),"Editing this product. Leave image empty to keep the current image.");
+    window.scrollTo({top:0,behavior:"smooth"});
+    return;
+  }
+  const btn=e.target.closest("[data-delete-id]");if(!btn)return;
+  if(!confirm("Delete this product from the public catalogue?"))return;
+  btn.disabled=true;
+  try{
+    await requireSession();
+    const id=btn.dataset.deleteId,img=btn.dataset.img||"";
+    const {error:dbErr}=await sb.from("Products").delete().eq("id",id);
+    if(dbErr)throw new Error(dbErr.message);
+    const path=imagePathFromUrl(img);
+    if(path)await sb.storage.from(BUCKET).remove([path]);
+    await loadProducts();
+  }catch(e){alert("Delete failed: "+e.message);btn.disabled=false}
+});
+
+function resetEditor(){
+  editingId=null;editingImageUrl="";
+  if(previewUrl){URL.revokeObjectURL(previewUrl);previewUrl="";}
+  $("image").value="";$("preview").src="";$("preview").classList.add("hidden");
+  $("fileInfo").textContent="No new image selected.";
+  $("name").value="";$("category").value="";$("description").value="";
+  $("postBtn").textContent="Upload & Publish Product";
+  $("cancelEditBtn").classList.add("hidden");
+  clearStatus($("editHint"));
+}
+$("cancelEditBtn").onclick=resetEditor;
+
+sb.auth.onAuthStateChange(async(_event,session)=>{
+  if(session) await enterAdmin(session);
+});
+
+(async()=>{
+  try{
+    const {data}=await sb.auth.getSession();
+    if(data.session) await enterAdmin(data.session);
+  }catch(e){console.error(e)}
+})();
+</script>
+</body>
+</html>
